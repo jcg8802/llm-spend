@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JClaw LLM Spend Tracker 💸</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    header .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .fox { font-size: 2rem; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .stat-card .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-card .sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .stat-card.green .value { color: var(--green); }
+    .stat-card.yellow .value { color: var(--yellow); }
+    .stat-card.purple .value { color: var(--purple); }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-container {
+      position: relative;
+      height: 240px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+    thead th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td {
+      padding: 10px 12px;
+      color: var(--text);
+    }
+    .tag {
+      display: inline-block;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    .cost-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cost-bar-fill {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--accent);
+      min-width: 2px;
+    }
+    .badge-source {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .note-banner {
+      background: rgba(210, 153, 34, 0.08);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      color: var(--yellow);
+      margin-bottom: 24px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .updated {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-card .value { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="fox">🦊</span>
+  <div>
+    <h1>JClaw LLM Spend Tracker</h1>
+    <div class="subtitle">Daily AI cost monitoring across all cron jobs</div>
+  </div>
+</header>
+
+<div id="note-banner" class="note-banner" style="display:none">
+  ⚠️ <span id="note-text"></span>
+</div>
+
+<div class="updated" id="updated-text">Loading...</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="label">Today's Spend</div>
+    <div class="value" id="today-cost">—</div>
+    <div class="sub" id="today-date">—</div>
+  </div>
+  <div class="stat-card green">
+    <div class="label">MTD Total</div>
+    <div class="value" id="mtd-cost">—</div>
+    <div class="sub" id="mtd-days">—</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="label">Projected Monthly</div>
+    <div class="value" id="proj-cost">—</div>
+    <div class="sub">at current daily rate</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="label">Cumulative (all time)</div>
+    <div class="value" id="cumulative-cost">—</div>
+    <div class="sub" id="cumulative-since">since —</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>📊 Daily Spend — Last 30 Days</h2>
+  <div class="chart-container">
+    <canvas id="barChart"></canvas>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🤖 Today's Breakdown by Agent</h2>
+  <table id="cron-table">
+    <thead>
+      <tr>
+        <th>Agent</th>
+        <th>Model</th>
+        <th>Input Tokens</th>
+        <th>Output Tokens</th>
+        <th>Cost</th>
+        <th style="width:120px">Share</th>
+      </tr>
+    </thead>
+    <tbody id="cron-body"></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🧠 By Model</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Input Tokens</th>
+        <th>Output Tokens</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody id="model-body"></tbody>
+  </table>
+</div>
+
+<script>
+function fmt(n) {
+  return '$' + n.toFixed(2);
+}
+function fmtK(n) {
+  if (n >= 1_000_000) return (n/1_000_000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(0)+'K';
+  return n.toString();
+}
+
+async function load() {
+  let data;
+  try {
+    const res = await fetch('./llm-spend.json?_=' + Date.now());
+    data = await res.json();
+  } catch(e) {
+    document.getElementById('updated-text').textContent = '⚠️ Could not load llm-spend.json';
+    return;
+  }
+
+  // Note banner
+  if (data.note) {
+    document.getElementById('note-banner').style.display = 'flex';
+    document.getElementById('note-text').textContent = data.note;
+  }
+
+  // Updated
+  const updatedEl = document.getElementById('updated-text');
+  if (data.updated) {
+    const d = new Date(data.updated);
+    updatedEl.textContent = 'Last updated: ' + d.toLocaleString();
+  }
+
+  const daily = data.daily || [];
+  const today = daily[daily.length - 1] || {};
+
+  // Today
+  document.getElementById('today-cost').textContent = fmt(today.total_cost_usd || 0);
+  document.getElementById('today-date').textContent = today.date || '';
+
+  // MTD
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+  const mtdDays = daily.filter(d => d.date >= startOfMonth);
+  const mtdTotal = mtdDays.reduce((s,d) => s + (d.total_cost_usd || 0), 0);
+  document.getElementById('mtd-cost').textContent = fmt(mtdTotal);
+  document.getElementById('mtd-days').textContent = mtdDays.length + ' day' + (mtdDays.length===1?'':'s') + ' this month';
+
+  // Projected monthly
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const avgDaily = mtdTotal / Math.max(dayOfMonth, 1);
+  const projected = avgDaily * daysInMonth;
+  document.getElementById('proj-cost').textContent = fmt(projected);
+
+  // Cumulative
+  document.getElementById('cumulative-cost').textContent = fmt(data.cumulative?.total_cost_usd || 0);
+  document.getElementById('cumulative-since').textContent = 'since ' + (data.cumulative?.start_date || '—');
+
+  // Chart — last 30 days
+  const last30 = daily.slice(-30);
+  const labels = last30.map(d => d.date.slice(5)); // MM-DD
+  const values = last30.map(d => d.total_cost_usd || 0);
+
+  const ctx = document.getElementById('barChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Daily Spend (USD)',
+        data: values,
+        backgroundColor: 'rgba(88, 166, 255, 0.6)',
+        borderColor: 'rgba(88, 166, 255, 1)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '$' + ctx.raw.toFixed(2)
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          ticks: { color: '#8b949e', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          ticks: {
+            color: '#8b949e',
+            font: { size: 11 },
+            callback: v => '$' + v.toFixed(0)
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // By cron table
+  const byCron = today.by_cron || [];
+  const maxCost = Math.max(...byCron.map(c => c.cost_usd));
+  const tbody = document.getElementById('cron-body');
+  byCron.sort((a,b) => b.cost_usd - a.cost_usd).forEach(c => {
+    const pct = maxCost > 0 ? (c.cost_usd / maxCost * 100) : 0;
+    const share = today.total_cost_usd > 0 ? (c.cost_usd / today.total_cost_usd * 100).toFixed(0) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${c.name}</strong></td>
+      <td><span class="tag">${c.model}</span></td>
+      <td>${fmtK(c.input_tokens)}</td>
+      <td>${fmtK(c.output_tokens)}</td>
+      <td><strong>${fmt(c.cost_usd)}</strong></td>
+      <td>
+        <div class="cost-bar">
+          <div class="cost-bar-fill" style="width:${pct}px"></div>
+          <span style="color:var(--muted);font-size:0.75rem">${share}%</span>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // By model table
+  const byModel = today.by_model || {};
+  const mTbody = document.getElementById('model-body');
+  Object.entries(byModel).forEach(([model, stats]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="tag">${model}</span></td>
+      <td>${fmtK(stats.input_tokens)}</td>
+      <td>${fmtK(stats.output_tokens)}</td>
+      <td><strong>${fmt(stats.cost_usd)}</strong></td>
+    `;
+    mTbody.appendChild(tr);
+  });
+}
+
+load();
+</script>
+</body>
+</html>
