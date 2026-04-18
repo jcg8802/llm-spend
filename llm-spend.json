@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-16T13:06:08.087550Z",
+  "updated": "2026-04-18T13:06:55.057512Z",
   "source": "estimation",
   "note": "Anthropic has no public usage API. Costs estimated from known cron schedules and typical token usage.",
   "daily": [
@@ -78,10 +78,86 @@
           "cost_usd": 7.185
         }
       }
+    },
+    {
+      "date": "2026-04-18",
+      "total_cost_usd": 7.185,
+      "by_cron": [
+        {
+          "name": "dream",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 80000,
+          "output_tokens": 15000,
+          "cost_usd": 0.465
+        },
+        {
+          "name": "overnight-ops",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 60000,
+          "output_tokens": 12000,
+          "cost_usd": 0.36
+        },
+        {
+          "name": "world-state",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 50000,
+          "output_tokens": 10000,
+          "cost_usd": 0.3
+        },
+        {
+          "name": "morning-brief",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 30000,
+          "output_tokens": 8000,
+          "cost_usd": 0.21
+        },
+        {
+          "name": "gekko",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 100000,
+          "output_tokens": 20000,
+          "cost_usd": 0.6
+        },
+        {
+          "name": "autoagent",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 70000,
+          "output_tokens": 15000,
+          "cost_usd": 0.435
+        },
+        {
+          "name": "skill-evolver",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 80000,
+          "output_tokens": 15000,
+          "cost_usd": 0.465
+        },
+        {
+          "name": "heartbeats",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 360000,
+          "output_tokens": 48000,
+          "cost_usd": 1.8
+        },
+        {
+          "name": "conversations",
+          "model": "claude-sonnet-4-6",
+          "input_tokens": 200000,
+          "output_tokens": 130000,
+          "cost_usd": 2.55
+        }
+      ],
+      "by_model": {
+        "claude-sonnet-4-6": {
+          "input_tokens": 1030000,
+          "output_tokens": 273000,
+          "cost_usd": 7.185
+        }
+      }
     }
   ],
   "cumulative": {
-    "total_cost_usd": 7.185,
+    "total_cost_usd": 14.37,
     "start_date": "2026-04-16"
   }
 }
